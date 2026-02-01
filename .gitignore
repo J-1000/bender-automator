@@ -1,5 +1,5 @@
 # Binaries
-benderd
+/benderd
 *.exe
 *.dll
 *.so
