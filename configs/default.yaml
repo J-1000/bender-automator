@@ -1,0 +1,112 @@
+# Bender Configuration
+# ~/.config/bender/config.yaml
+
+# LLM Provider Configuration
+llm:
+  default_provider: ollama
+
+  providers:
+    ollama:
+      enabled: true
+      base_url: http://localhost:11434
+      model: llama3.2
+      timeout_seconds: 30
+
+    openai:
+      enabled: false
+      # api_key: ${OPENAI_API_KEY}
+      model: gpt-4o-mini
+      vision_model: gpt-4o
+      timeout_seconds: 60
+
+    anthropic:
+      enabled: false
+      # api_key: ${ANTHROPIC_API_KEY}
+      model: claude-3-haiku-20240307
+      timeout_seconds: 60
+
+# Clipboard monitoring
+clipboard:
+  enabled: true
+  min_length: 500
+  debounce_ms: 1000
+  auto_summarize: true
+  notification: true
+  notification_sound: false
+
+# File auto-organization
+auto_file:
+  enabled: true
+  watch_dirs:
+    - ~/Downloads
+  destination_root: ~/Documents/Sorted
+  ignore_hidden: true
+  exclude_patterns:
+    - "*.crdownload"
+    - "*.part"
+    - "*.download"
+    - ".DS_Store"
+  categories:
+    - name: images
+      path: ~/Pictures/Downloads
+      extensions: [jpg, jpeg, png, gif, webp, svg]
+    - name: documents
+      path: ~/Documents/Downloads
+      extensions: [pdf, doc, docx, txt, md, rtf]
+    - name: code
+      path: ~/Code/Downloads
+      extensions: [py, js, ts, go, rs, java, cpp, h]
+    - name: archives
+      path: ~/Downloads/Archives
+      extensions: [zip, tar, gz, rar, 7z]
+  use_llm_classification: true
+
+# File renaming
+rename:
+  naming_convention: kebab-case
+  include_date: true
+  date_format: "YYYY-MM-DD"
+  date_position: prefix
+  max_length: 60
+  preserve_extension: true
+
+# Git integration
+git:
+  enabled: true
+  auto_install_hooks: false
+  commit_format: conventional
+  include_scope: true
+  include_body: true
+  max_subject_length: 72
+  max_body_width: 80
+  include_diff_in_body: false
+
+# Screenshot handling
+screenshots:
+  enabled: true
+  watch_dir: ~/Desktop
+  destination: ~/Pictures/Screenshots
+  rename: true
+  add_metadata_tags: true
+  use_vision: true
+  vision_provider: openai
+
+# Task queue
+queue:
+  max_concurrent: 2
+  default_timeout_seconds: 30
+  max_retries: 3
+  retry_delay_seconds: 5
+
+# Logging
+logging:
+  level: info
+  max_size_mb: 10
+  max_files: 5
+  include_timestamps: true
+
+# Notifications
+notifications:
+  enabled: true
+  sound: false
+  show_previews: true
