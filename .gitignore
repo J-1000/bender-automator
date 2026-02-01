@@ -1,0 +1,48 @@
+# Binaries
+benderd
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Go
+daemon/vendor/
+
+# Node
+node_modules/
+.npm
+.pnpm-store
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local
+.env*.local
+
+# Runtime
+/tmp/bender.sock
+*.db
+*.db-journal
+
+# Test coverage
+coverage/
+.nyc_output/
