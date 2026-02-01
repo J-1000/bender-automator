@@ -4,14 +4,16 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/user/bender/internal/config"
+	"github.com/user/bender/internal/logging"
 )
 
 var (
-	version   = "dev"
+	version    = "dev"
 	configPath string
 )
 
@@ -24,14 +26,32 @@ func main() {
 		if configPath == "" {
 			homeDir, err := os.UserHomeDir()
 			if err != nil {
-				log.Fatalf("failed to get home directory: %v", err)
+				fmt.Fprintf(os.Stderr, "failed to get home directory: %v\n", err)
+				os.Exit(1)
 			}
 			configPath = homeDir + "/.config/bender/config.yaml"
 		}
 	}
 
-	fmt.Printf("benderd version %s starting...\n", version)
-	fmt.Printf("config: %s\n", configPath)
+	cfg, err := config.Load(configPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to load config: %v\n", err)
+		os.Exit(1)
+	}
+
+	logger, err := logging.New(logging.Config{
+		Level:     cfg.Logging.Level,
+		Timestamp: cfg.Logging.IncludeTimestamps,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to create logger: %v\n", err)
+		os.Exit(1)
+	}
+	defer logger.Close()
+	logging.SetDefault(logger)
+
+	logging.Info("benderd version %s starting", version)
+	logging.Info("config loaded from %s", configPath)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -41,18 +61,20 @@ func main() {
 
 	go func() {
 		sig := <-sigCh
-		fmt.Printf("\nreceived signal %v, shutting down...\n", sig)
+		logging.Info("received signal %v, shutting down...", sig)
 		cancel()
 	}()
 
-	if err := run(ctx); err != nil {
-		log.Fatalf("daemon error: %v", err)
+	if err := run(ctx, cfg); err != nil {
+		logging.Fatal("daemon error: %v", err)
 	}
 
-	fmt.Println("daemon stopped")
+	logging.Info("daemon stopped")
 }
 
-func run(ctx context.Context) error {
+func run(ctx context.Context, cfg *config.Config) error {
+	logging.Info("daemon running with provider: %s", cfg.LLM.DefaultProvider)
+
 	<-ctx.Done()
 	return nil
 }
