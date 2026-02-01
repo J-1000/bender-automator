@@ -6,10 +6,17 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
+	"time"
 
+	"github.com/user/bender/internal/api"
+	"github.com/user/bender/internal/clipboard"
 	"github.com/user/bender/internal/config"
+	"github.com/user/bender/internal/fswatch"
+	"github.com/user/bender/internal/llm"
 	"github.com/user/bender/internal/logging"
+	"github.com/user/bender/internal/task"
 )
 
 var (
@@ -73,8 +80,165 @@ func main() {
 }
 
 func run(ctx context.Context, cfg *config.Config) error {
-	logging.Info("daemon running with provider: %s", cfg.LLM.DefaultProvider)
+	// Initialize LLM router
+	router, err := llm.NewRouter(&cfg.LLM)
+	if err != nil {
+		return fmt.Errorf("init llm router: %w", err)
+	}
+	logging.Info("LLM router initialized with provider: %s", router.DefaultProviderName())
 
+	// Initialize task queue
+	homeDir, _ := os.UserHomeDir()
+	dbPath := filepath.Join(homeDir, ".local", "share", "bender", "bender.db")
+	if err := os.MkdirAll(filepath.Dir(dbPath), 0755); err != nil {
+		return fmt.Errorf("create data directory: %w", err)
+	}
+
+	queue, err := task.NewQueue(task.Config{
+		DBPath:       dbPath,
+		MaxWorkers:   cfg.Queue.MaxConcurrent,
+		MaxRetries:   cfg.Queue.MaxRetries,
+		RetryDelay:   time.Duration(cfg.Queue.RetryDelaySeconds) * time.Second,
+		TaskTimeout:  time.Duration(cfg.Queue.DefaultTimeoutSeconds) * time.Second,
+	})
+	if err != nil {
+		return fmt.Errorf("init task queue: %w", err)
+	}
+
+	// Register task handlers
+	registerTaskHandlers(queue, router)
+
+	if err := queue.Start(); err != nil {
+		return fmt.Errorf("start task queue: %w", err)
+	}
+	defer queue.Stop()
+
+	// Initialize API server
+	server := api.NewServer("")
+	api.RegisterStatusHandlers(server, version)
+	registerAPIHandlers(server, queue, router, cfg)
+
+	if err := server.Start(ctx); err != nil {
+		return fmt.Errorf("start api server: %w", err)
+	}
+	defer server.Stop()
+
+	// Initialize clipboard monitor
+	var clipMonitor *clipboard.Monitor
+	if cfg.Clipboard.Enabled {
+		clipMonitor = clipboard.NewMonitor(clipboard.Config{
+			MinLength:  cfg.Clipboard.MinLength,
+			DebounceMs: cfg.Clipboard.DebounceMs,
+			OnChange: func(content string) {
+				if cfg.Clipboard.AutoSummarize {
+					queue.Enqueue(task.TaskClipboardSummarize, []byte(`{"content":"`+escapeJSON(content)+`"}`), 0)
+				}
+			},
+		})
+		if err := clipMonitor.Start(); err != nil {
+			logging.Warn("failed to start clipboard monitor: %v", err)
+		} else {
+			defer clipMonitor.Stop()
+		}
+	}
+
+	// Initialize file watcher
+	var fileWatcher *fswatch.Watcher
+	if cfg.AutoFile.Enabled && len(cfg.AutoFile.WatchDirs) > 0 {
+		fileWatcher = fswatch.NewWatcher(fswatch.Config{
+			Dirs:            cfg.AutoFile.WatchDirs,
+			ExcludePatterns: cfg.AutoFile.ExcludePatterns,
+			IgnoreHidden:    cfg.AutoFile.IgnoreHidden,
+			Handler: func(event fswatch.Event) {
+				if event.Type == fswatch.EventCreate {
+					queue.Enqueue(task.TaskFileClassify, []byte(`{"path":"`+escapeJSON(event.Path)+`"}`), 0)
+				}
+			},
+		})
+		if err := fileWatcher.Start(); err != nil {
+			logging.Warn("failed to start file watcher: %v", err)
+		} else {
+			defer fileWatcher.Stop()
+		}
+	}
+
+	logging.Info("daemon ready")
 	<-ctx.Done()
 	return nil
+}
+
+func registerTaskHandlers(queue *task.Queue, router *llm.Router) {
+	// Clipboard summarization
+	queue.RegisterHandler(task.TaskClipboardSummarize, func(ctx context.Context, payload []byte) ([]byte, error) {
+		// TODO: Implement summarization
+		logging.Debug("clipboard summarize task received")
+		return []byte(`{"summary":"TODO"}`), nil
+	})
+
+	// File classification
+	queue.RegisterHandler(task.TaskFileClassify, func(ctx context.Context, payload []byte) ([]byte, error) {
+		// TODO: Implement classification
+		logging.Debug("file classify task received")
+		return []byte(`{"category":"TODO"}`), nil
+	})
+
+	// File rename
+	queue.RegisterHandler(task.TaskFileRename, func(ctx context.Context, payload []byte) ([]byte, error) {
+		// TODO: Implement rename
+		logging.Debug("file rename task received")
+		return []byte(`{"new_name":"TODO"}`), nil
+	})
+
+	// Git commit
+	queue.RegisterHandler(task.TaskGitCommit, func(ctx context.Context, payload []byte) ([]byte, error) {
+		// TODO: Implement commit message generation
+		logging.Debug("git commit task received")
+		return []byte(`{"message":"TODO"}`), nil
+	})
+
+	// Screenshot tag
+	queue.RegisterHandler(task.TaskScreenshotTag, func(ctx context.Context, payload []byte) ([]byte, error) {
+		// TODO: Implement screenshot tagging
+		logging.Debug("screenshot tag task received")
+		return []byte(`{"tags":[]}`), nil
+	})
+}
+
+func registerAPIHandlers(server *api.Server, queue *task.Queue, router *llm.Router, cfg *config.Config) {
+	// Config handlers
+	server.Handle("config.get", func(ctx context.Context, params []byte) (any, error) {
+		return cfg, nil
+	})
+
+	server.Handle("config.reload", func(ctx context.Context, params []byte) (any, error) {
+		// TODO: Implement config reload
+		return map[string]string{"status": "ok"}, nil
+	})
+
+	// Task handlers
+	server.Handle("task.queue", func(ctx context.Context, params []byte) (any, error) {
+		return queue.ListTasks(100)
+	})
+}
+
+func escapeJSON(s string) string {
+	// Basic JSON string escaping
+	result := ""
+	for _, c := range s {
+		switch c {
+		case '"':
+			result += `\"`
+		case '\\':
+			result += `\\`
+		case '\n':
+			result += `\n`
+		case '\r':
+			result += `\r`
+		case '\t':
+			result += `\t`
+		default:
+			result += string(c)
+		}
+	}
+	return result
 }
