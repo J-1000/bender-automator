@@ -1,0 +1,425 @@
+================================================================================
+BENDER - Local AI Workflow Automator for macOS
+Project Progress Tracker
+================================================================================
+
+Last Updated: 2026-02-01
+
+================================================================================
+COMPLETED COMPONENTS
+================================================================================
+
+## Daemon (Go) - daemon/
+
+  [x] cmd/benderd/main.go
+      - Entry point with graceful shutdown
+      - Signal handling (SIGINT, SIGTERM)
+      - Config loading and validation
+      - Component initialization and wiring
+
+  [x] internal/config/config.go
+      - YAML configuration loading
+      - All config structs defined
+      - Path expansion (~/...)
+      - Default values
+
+  [x] internal/logging/logger.go
+      - Log levels (debug, info, warn, error)
+      - File and stdout output
+      - Timestamps
+      - Thread-safe
+
+  [x] internal/api/server.go
+      - JSON-RPC 2.0 over Unix socket (/tmp/bender.sock)
+      - Method handler registration
+      - Concurrent connection handling
+      - Standard error codes
+
+  [x] internal/api/handlers.go
+      - status.get - daemon status
+      - status.health - health checks
+
+  [x] internal/llm/provider.go
+      - Provider interface definition
+      - CompletionRequest/Response types
+      - VisionRequest for image analysis
+
+  [x] internal/llm/ollama.go
+      - Ollama API integration
+      - Text and vision completions
+      - Configurable model and timeout
+
+  [x] internal/llm/openai.go
+      - OpenAI API integration
+      - GPT-4o vision support
+      - Token usage tracking
+
+  [x] internal/llm/anthropic.go
+      - Anthropic API integration
+      - Claude vision support
+      - System message handling
+
+  [x] internal/llm/router.go
+      - Multi-provider management
+      - Default provider selection
+      - Vision provider routing
+
+  [x] internal/task/queue.go
+      - SQLite-backed persistent queue
+      - Worker pool (configurable)
+      - Retry with backoff
+      - Task timeout handling
+
+  [x] internal/clipboard/monitor.go
+      - Poll-based monitoring (pbpaste)
+      - Configurable min length
+      - Debounce support
+      - Change callbacks
+
+  [x] internal/fswatch/watcher.go
+      - Directory monitoring
+      - Create/modify/delete events
+      - Exclude patterns
+      - Hidden file filtering
+
+  [x] internal/git/git.go
+      - Repository operations
+      - Staged diff retrieval
+      - Commit creation
+      - Hook installation
+
+--------------------------------------------------------------------------------
+
+## CLI (TypeScript) - cli/
+
+  [x] package.json & tsconfig.json
+      - ES modules configuration
+      - Dependencies (commander, chalk, ora, inquirer, yaml)
+
+  [x] src/index.ts
+      - Command structure definition
+      - All commands registered
+
+  [x] src/lib/client.ts
+      - JSON-RPC client over Unix socket
+      - Type definitions
+      - Error handling
+
+  [x] src/commands/start.ts
+      - Start daemon via launchctl or directly
+      - Wait for daemon ready
+
+  [x] src/commands/stop.ts
+      - Stop daemon gracefully
+      - Handle launchctl and direct kill
+
+  [x] src/commands/restart.ts
+      - Stop then start
+
+  [x] src/commands/status.ts
+      - Display daemon status
+      - Health check results
+
+  [x] src/commands/config.ts
+      - Open in $EDITOR
+      - Get/set values by path
+      - Validate syntax
+
+  [x] src/commands/install.ts
+      - Install LaunchAgent plist
+      - Install git hooks
+      - Uninstall both
+
+  [x] src/commands/summarize.ts
+      - Summarize clipboard or text (stub)
+
+  [x] src/commands/classify.ts
+      - Classify file (stub)
+
+  [x] src/commands/rename.ts
+      - Rename files interactively (stub)
+
+  [x] src/commands/commit.ts
+      - Generate commit message (stub)
+      - Interactive approval workflow
+
+  [x] src/commands/logs.ts
+      - View daemon logs
+      - Follow mode
+      - Level filtering
+
+--------------------------------------------------------------------------------
+
+## Dashboard (Next.js) - dashboard/
+
+  [x] package.json & config files
+      - Next.js 14 setup
+      - Tailwind CSS
+      - TypeScript
+
+  [x] app/layout.tsx
+      - Root layout with navigation
+      - Dark mode support
+
+  [x] app/globals.css
+      - Tailwind directives
+      - CSS variables for theming
+
+  [x] app/page.tsx
+      - Status display
+      - Quick stats
+      - Action buttons
+
+  [x] app/tasks/page.tsx
+      - Task list table
+      - Status badges
+      - Real-time updates
+
+  [x] app/api/daemon/status/route.ts
+      - Proxy to daemon socket
+
+  [x] app/api/tasks/route.ts
+      - Fetch task queue
+
+  [x] components/StatusBadge.tsx
+      - Reusable status indicator
+
+--------------------------------------------------------------------------------
+
+## Configuration - configs/
+
+  [x] default.yaml
+      - Full default configuration
+      - All features configured
+
+  [x] schema.json
+      - JSON Schema for validation
+      - IDE autocompletion support
+
+--------------------------------------------------------------------------------
+
+## Scripts - scripts/
+
+  [x] install.sh
+      - Build daemon
+      - Install CLI
+      - Copy config
+
+  [x] uninstall.sh
+      - Stop daemon
+      - Remove binaries
+      - Preserve user data
+
+
+================================================================================
+NOT YET IMPLEMENTED (TODOs)
+================================================================================
+
+## Daemon Task Handlers (CRITICAL - Core functionality)
+
+  [ ] Clipboard Summarization Handler
+      File: daemon/cmd/benderd/main.go (registerTaskHandlers)
+      - Parse payload to get content
+      - Build prompt for summarization
+      - Call LLM router
+      - Return summary in response
+      - Optionally store for later retrieval
+
+  [ ] File Classification Handler
+      - Read file metadata (name, size, extension)
+      - Optionally extract content preview
+      - Build classification prompt with categories
+      - Call LLM to determine category
+      - Return suggested destination path
+
+  [ ] File Rename Handler
+      - Extract file content/metadata
+      - For images: could add EXIF reading
+      - Build rename prompt with naming convention
+      - Call LLM for suggested name
+      - Return new filename
+
+  [ ] Git Commit Message Handler
+      - Receive diff and file list
+      - Build prompt for conventional commit format
+      - Call LLM
+      - Return formatted commit message
+
+  [ ] Screenshot Tagging Handler
+      - Read image file
+      - Use vision-capable LLM
+      - Extract app name, description, tags
+      - Return tags and suggested filename
+
+--------------------------------------------------------------------------------
+
+## File Operations (CRITICAL - Actually do things)
+
+  [ ] File Move Operation
+      File: NEW - daemon/internal/fileops/move.go
+      - Move file to destination
+      - Handle conflicts (append -1, -2, etc.)
+      - Log operation for undo
+
+  [ ] File Rename Operation
+      - Rename file with new name
+      - Preserve extension
+      - Handle conflicts
+
+  [ ] Undo System
+      File: NEW - daemon/internal/fileops/undo.go
+      - Track all file operations in SQLite
+      - Store original path, new path, timestamp
+      - Implement undo by task ID
+      - 24-hour retention window
+
+--------------------------------------------------------------------------------
+
+## macOS Integration
+
+  [ ] Notifications
+      File: NEW - daemon/internal/notify/notify.go
+      - Send macOS notifications via osascript
+      - Configurable sound
+      - Show preview of result
+
+  [ ] Keychain Integration
+      - Store API keys in macOS Keychain
+      - Read keys securely (not from config file)
+
+--------------------------------------------------------------------------------
+
+## Dashboard Pages
+
+  [ ] Config Page (/config)
+      File: dashboard/app/config/page.tsx
+      - Visual config editor
+      - Form fields for each section
+      - Save to daemon
+      - Test LLM connection buttons
+
+  [ ] Logs Page (/logs)
+      File: dashboard/app/logs/page.tsx
+      - Real-time log streaming (SSE)
+      - Level filtering
+      - Search functionality
+      - Export capability
+
+  [ ] Task Detail View
+      - Click on task to see details
+      - View payload and result
+      - Undo button for file operations
+
+--------------------------------------------------------------------------------
+
+## API Handlers (Daemon)
+
+  [ ] config.set - Update configuration
+  [ ] config.reload - Hot reload config
+  [ ] clipboard.get_summary - Retrieve last summary
+  [ ] file.move - Execute file move
+  [ ] task.cancel - Cancel pending task
+  [ ] task.history - Get task history with filters
+  [ ] logs.stream - Stream logs via socket
+
+--------------------------------------------------------------------------------
+
+## Testing
+
+  [ ] Daemon unit tests
+      - Config loading
+      - Task queue operations
+      - LLM provider mocking
+
+  [ ] CLI unit tests
+      - Command parsing
+      - Client communication
+
+  [ ] Integration tests
+      - Full workflow tests
+      - Daemon + CLI interaction
+
+--------------------------------------------------------------------------------
+
+## Documentation
+
+  [ ] README.md
+      - Project overview
+      - Installation instructions
+      - Configuration guide
+      - Usage examples
+
+  [ ] CONTRIBUTING.md
+      - Development setup
+      - Code style
+      - PR process
+
+
+================================================================================
+PRIORITY ORDER FOR COMPLETION
+================================================================================
+
+1. HIGH - Task Handlers
+   Implement the actual LLM-powered functionality in registerTaskHandlers()
+   This is what makes the app useful.
+
+2. HIGH - File Operations
+   Create fileops package to actually move/rename files safely.
+
+3. MEDIUM - API Handlers
+   Complete remaining daemon API methods.
+
+4. MEDIUM - Dashboard Pages
+   Add config editor and logs viewer.
+
+5. LOW - Notifications
+   Add macOS notification support.
+
+6. LOW - Tests
+   Add comprehensive test coverage.
+
+7. LOW - Documentation
+   Write README and guides.
+
+
+================================================================================
+COMMIT HISTORY (34 commits)
+================================================================================
+
+a12a916 feat: add install and uninstall scripts
+09f51e2 feat(dashboard): add StatusBadge component
+12b5ac5 feat(dashboard): add tasks page
+35ddd3d feat(dashboard): add daemon status API route
+d907fd2 feat(dashboard): add layout and home page
+bd5450e feat(dashboard): add Next.js project setup
+19582ea feat(cli): add logs command
+2e5eec0 feat(cli): add ad-hoc task commands
+6a271da feat(cli): add install/uninstall commands
+911462c feat(cli): add config management command
+b4a5f9b feat(cli): add daemon management commands
+fd95f5c feat(cli): add daemon client library
+bc3cad3 feat(daemon): wire all components together
+5318260 feat(git): implement git integration
+bc5caa0 feat(fswatch): implement file system watcher
+46a7711 feat(clipboard): implement clipboard monitor for macOS
+9bb4d10 feat(task): implement task queue with SQLite persistence
+41d2b39 feat(llm): add provider router
+a81a0fe feat(llm): implement Anthropic provider
+23aedc6 feat(llm): implement OpenAI provider
+76b00a2 feat(llm): implement Ollama provider
+8a177c8 feat(llm): define Provider interface and types
+632e5d5 feat(daemon): add status and health check handlers
+e3808e1 feat(daemon): add JSON-RPC API server over Unix socket
+c30545f feat(daemon): integrate config and logging in main
+b207696 feat(daemon): add logging package
+431eca4 feat(daemon): add configuration loading package
+4c9525c feat(config): add JSON schema for configuration validation
+64d028d feat(config): add default configuration file
+3449cd7 feat(cli): add main entry point with command structure
+8d8be36 feat(cli): add package.json and TypeScript config
+158a962 feat(daemon): add main entry point with graceful shutdown
+f88ea75 fix: update gitignore to not exclude benderd directory
+ca4a87d chore: add project directory structure
+0d82d1c chore: initial project setup with PRD
+
+================================================================================
