@@ -91,6 +91,15 @@ program
     await commit(options);
   });
 
+program
+  .command('screenshot')
+  .description('Tag a screenshot with AI-detected metadata')
+  .argument('<file>', 'screenshot image to tag')
+  .action(async (file) => {
+    const { screenshot } = await import('./commands/screenshot.js');
+    await screenshot(file);
+  });
+
 // Installation
 const install = program.command('install').description('Install components');
 
