@@ -14,6 +14,7 @@ import (
 	"github.com/user/bender/internal/api"
 	"github.com/user/bender/internal/clipboard"
 	"github.com/user/bender/internal/config"
+	"github.com/user/bender/internal/fileops"
 	"github.com/user/bender/internal/fswatch"
 	"github.com/user/bender/internal/llm"
 	"github.com/user/bender/internal/logging"
@@ -107,6 +108,13 @@ func run(ctx context.Context, cfg *config.Config) error {
 		return fmt.Errorf("init task queue: %w", err)
 	}
 
+	// Initialize undo manager
+	undoMgr, err := fileops.NewUndoManager(filepath.Join(homeDir, ".local", "share", "bender", "bender.db"))
+	if err != nil {
+		return fmt.Errorf("init undo manager: %w", err)
+	}
+	defer undoMgr.Close()
+
 	// Initialize notifier
 	notifier := notify.New(notify.Config{
 		Enabled:      cfg.Notifications.Enabled,
@@ -125,7 +133,7 @@ func run(ctx context.Context, cfg *config.Config) error {
 	// Initialize API server
 	server := api.NewServer("")
 	api.RegisterStatusHandlers(server, version)
-	registerAPIHandlers(server, queue, router, cfg)
+	registerAPIHandlers(server, queue, router, cfg, undoMgr)
 
 	if err := server.Start(ctx); err != nil {
 		return fmt.Errorf("start api server: %w", err)
@@ -201,7 +209,7 @@ func registerTaskHandlers(queue *task.Queue, router *llm.Router, cfg *config.Con
 	})
 }
 
-func registerAPIHandlers(server *api.Server, queue *task.Queue, router *llm.Router, cfg *config.Config) {
+func registerAPIHandlers(server *api.Server, queue *task.Queue, router *llm.Router, cfg *config.Config, undoMgr *fileops.UndoManager) {
 	// Config handlers
 	server.Handle("config.get", func(ctx context.Context, params json.RawMessage) (any, error) {
 		return cfg, nil
@@ -313,6 +321,55 @@ func registerAPIHandlers(server *api.Server, queue *task.Queue, router *llm.Rout
 			levelFilter = p.Level
 		}
 		return logging.Recent(limit, levelFilter), nil
+	})
+
+	// File operations
+	server.Handle("file.move", func(ctx context.Context, params json.RawMessage) (any, error) {
+		var p struct {
+			Source      string `json:"source"`
+			Destination string `json:"destination"`
+			TaskID      string `json:"task_id"`
+		}
+		if err := json.Unmarshal(params, &p); err != nil {
+			return nil, fmt.Errorf("parse params: %w", err)
+		}
+
+		actualDst, err := fileops.MoveFile(p.Source, p.Destination)
+		if err != nil {
+			return nil, err
+		}
+
+		// Record for undo
+		if p.TaskID != "" {
+			undoMgr.Record(fileops.Operation{
+				ID:           fmt.Sprintf("%d", time.Now().UnixNano()),
+				TaskID:       p.TaskID,
+				Type:         fileops.OpMove,
+				OriginalPath: p.Source,
+				NewPath:      actualDst,
+				CreatedAt:    time.Now(),
+			})
+		}
+
+		logging.Info("moved %s -> %s", p.Source, actualDst)
+		return map[string]string{"destination": actualDst}, nil
+	})
+
+	server.Handle("undo", func(ctx context.Context, params json.RawMessage) (any, error) {
+		var p struct {
+			TaskID string `json:"task_id"`
+		}
+		if err := json.Unmarshal(params, &p); err != nil {
+			return nil, fmt.Errorf("parse params: %w", err)
+		}
+
+		count, err := undoMgr.Undo(p.TaskID)
+		if err != nil {
+			return nil, err
+		}
+
+		logging.Info("undid %d operations for task %s", count, p.TaskID)
+		return map[string]any{"undone": count, "task_id": p.TaskID}, nil
 	})
 }
 
