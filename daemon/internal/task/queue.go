@@ -323,15 +323,32 @@ func (q *Queue) Enqueue(taskType TaskType, payload json.RawMessage, priority int
 // GetTask retrieves a task by ID
 func (q *Queue) GetTask(id string) (*Task, error) {
 	var task Task
+	var payload, result, errStr sql.NullString
+	var startedAt, finishedAt sql.NullTime
 	err := q.db.QueryRow(`
 		SELECT id, type, priority, payload, status, result, error, created_at, started_at, finished_at, retry_count, max_retries
 		FROM tasks WHERE id = ?
-	`, id).Scan(&task.ID, &task.Type, &task.Priority, &task.Payload, &task.Status, &task.Result, &task.Error, &task.CreatedAt, &task.StartedAt, &task.FinishedAt, &task.RetryCount, &task.MaxRetries)
+	`, id).Scan(&task.ID, &task.Type, &task.Priority, &payload, &task.Status, &result, &errStr, &task.CreatedAt, &startedAt, &finishedAt, &task.RetryCount, &task.MaxRetries)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
+	}
+	if payload.Valid {
+		task.Payload = json.RawMessage(payload.String)
+	}
+	if result.Valid {
+		task.Result = json.RawMessage(result.String)
+	}
+	if errStr.Valid {
+		task.Error = errStr.String
+	}
+	if startedAt.Valid {
+		task.StartedAt = &startedAt.Time
+	}
+	if finishedAt.Valid {
+		task.FinishedAt = &finishedAt.Time
 	}
 	return &task, nil
 }
@@ -356,8 +373,25 @@ func (q *Queue) ListTasks(limit int) ([]*Task, error) {
 	var tasks []*Task
 	for rows.Next() {
 		var task Task
-		if err := rows.Scan(&task.ID, &task.Type, &task.Priority, &task.Payload, &task.Status, &task.Result, &task.Error, &task.CreatedAt, &task.StartedAt, &task.FinishedAt, &task.RetryCount, &task.MaxRetries); err != nil {
+		var payload, result, errStr sql.NullString
+		var startedAt, finishedAt sql.NullTime
+		if err := rows.Scan(&task.ID, &task.Type, &task.Priority, &payload, &task.Status, &result, &errStr, &task.CreatedAt, &startedAt, &finishedAt, &task.RetryCount, &task.MaxRetries); err != nil {
 			continue
+		}
+		if payload.Valid {
+			task.Payload = json.RawMessage(payload.String)
+		}
+		if result.Valid {
+			task.Result = json.RawMessage(result.String)
+		}
+		if errStr.Valid {
+			task.Error = errStr.String
+		}
+		if startedAt.Valid {
+			task.StartedAt = &startedAt.Time
+		}
+		if finishedAt.Valid {
+			task.FinishedAt = &finishedAt.Time
 		}
 		tasks = append(tasks, &task)
 	}
