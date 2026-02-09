@@ -17,6 +17,7 @@ import (
 	"github.com/user/bender/internal/fswatch"
 	"github.com/user/bender/internal/llm"
 	"github.com/user/bender/internal/logging"
+	"github.com/user/bender/internal/notify"
 	"github.com/user/bender/internal/task"
 )
 
@@ -106,6 +107,13 @@ func run(ctx context.Context, cfg *config.Config) error {
 		return fmt.Errorf("init task queue: %w", err)
 	}
 
+	// Initialize notifier
+	notifier := notify.New(notify.Config{
+		Enabled:      cfg.Notifications.Enabled,
+		Sound:        cfg.Notifications.Sound,
+		ShowPreviews: cfg.Notifications.ShowPreviews,
+	})
+
 	// Register task handlers
 	registerTaskHandlers(queue, router, cfg)
 
@@ -133,6 +141,9 @@ func run(ctx context.Context, cfg *config.Config) error {
 			OnChange: func(content string) {
 				if cfg.Clipboard.AutoSummarize {
 					queue.Enqueue(task.TaskClipboardSummarize, []byte(`{"content":"`+escapeJSON(content)+`"}`), 0)
+					if cfg.Clipboard.Notification {
+						notifier.Send("Bender", "Summarizing clipboard content...")
+					}
 				}
 			},
 		})
