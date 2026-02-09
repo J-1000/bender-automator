@@ -143,6 +143,20 @@ COMPLETED COMPONENTS
       - Generate commit message via daemon
       - Interactive approval workflow
 
+  [x] src/commands/screenshot.ts
+      - Tag screenshots with AI-detected metadata
+      - Image extension validation
+      - Displays app, description, tags, suggested name
+
+  [x] src/commands/undo.ts
+      - Undo file operations by task ID
+      - Displays count of reversed operations
+
+  [x] src/commands/tasks.ts
+      - View task queue history as formatted table
+      - --limit and --status filtering options
+      - Color-coded status display
+
   [x] src/commands/logs.ts
       - View daemon logs
       - Follow mode
@@ -319,6 +333,7 @@ RECENTLY IMPLEMENTED
   [x] file.rename - Synchronous rename suggestion
   [x] file.move - Execute file move with undo tracking
   [x] git.generate_commit - Synchronous commit message
+  [x] screenshot.tag - Synchronous screenshot tagging
   [x] task.cancel - Cancel pending task
   [x] task.history - Get task history with filters
   [x] logs.get - Retrieve recent log entries
@@ -335,10 +350,11 @@ RECENTLY IMPLEMENTED
       - api: server lifecycle, method dispatch, errors, status handlers (7 tests)
       - config: (3 tests via integration)
 
-  [x] CLI unit tests (21 tests passing)
+  [x] CLI unit tests (28 tests passing)
       - client: JSON-RPC communication, errors, connection handling (7 tests)
       - config: nested value get/set helpers (8 tests)
       - logs: log level detection and colorization (6 tests)
+      - commands: screenshot, undo, tasks RPC + validation (7 tests)
 
   [x] Integration tests
       - API server + handler end-to-end tests via Unix socket
@@ -365,6 +381,6 @@ ALL TASKS COMPLETED
 ================================================================================
 
 All planned features, tests, and documentation are complete.
-52 total tests passing (31 daemon + 21 CLI).
+59 total tests passing (31 daemon + 28 CLI).
 
 ================================================================================
