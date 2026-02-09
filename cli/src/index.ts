@@ -100,6 +100,15 @@ program
     await screenshot(file);
   });
 
+program
+  .command('undo')
+  .description('Undo file operations for a task')
+  .argument('<task-id>', 'task ID to undo')
+  .action(async (taskId) => {
+    const { undo } = await import('./commands/undo.js');
+    await undo(taskId);
+  });
+
 // Installation
 const install = program.command('install').description('Install components');
 
