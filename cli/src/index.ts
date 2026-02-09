@@ -109,6 +109,16 @@ program
     await undo(taskId);
   });
 
+program
+  .command('tasks')
+  .description('View task queue history')
+  .option('-l, --limit <n>', 'number of tasks to show', '20')
+  .option('-s, --status <status>', 'filter by status (pending, running, completed, failed)')
+  .action(async (options) => {
+    const { tasks } = await import('./commands/tasks.js');
+    await tasks(options);
+  });
+
 // Installation
 const install = program.command('install').description('Install components');
 
