@@ -364,6 +364,54 @@ func (q *Queue) ListTasks(limit int) ([]*Task, error) {
 	return tasks, nil
 }
 
+// EnqueueAndWait adds a task and blocks until it completes or the context is cancelled.
+func (q *Queue) EnqueueAndWait(ctx context.Context, taskType TaskType, payload json.RawMessage, priority int) (*Task, error) {
+	t, err := q.Enqueue(taskType, payload, priority)
+	if err != nil {
+		return nil, err
+	}
+
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-ticker.C:
+			current, err := q.GetTask(t.ID)
+			if err != nil {
+				return nil, err
+			}
+			if current == nil {
+				return nil, fmt.Errorf("task %s not found", t.ID)
+			}
+			switch current.Status {
+			case StatusCompleted:
+				return current, nil
+			case StatusFailed:
+				return current, fmt.Errorf("task failed: %s", current.Error)
+			}
+		}
+	}
+}
+
+// CancelTask cancels a pending task.
+func (q *Queue) CancelTask(id string) error {
+	result, err := q.db.Exec(`
+		UPDATE tasks SET status = 'failed', error = 'cancelled by user', finished_at = ?
+		WHERE id = ? AND status IN ('pending', 'running')
+	`, time.Now(), id)
+	if err != nil {
+		return err
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("task %s not found or already completed", id)
+	}
+	return nil
+}
+
 func generateID() string {
 	return fmt.Sprintf("%d", time.Now().UnixNano())
 }
