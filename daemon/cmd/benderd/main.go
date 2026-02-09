@@ -307,6 +307,14 @@ func registerAPIHandlers(server *api.Server, queue *task.Queue, router *llm.Rout
 		return json.RawMessage(t.Result), nil
 	})
 
+	server.Handle("screenshot.tag", func(ctx context.Context, params json.RawMessage) (any, error) {
+		t, err := queue.EnqueueAndWait(ctx, task.TaskScreenshotTag, params, 1)
+		if err != nil {
+			return nil, err
+		}
+		return json.RawMessage(t.Result), nil
+	})
+
 	// Logs handler
 	server.Handle("logs.get", func(ctx context.Context, params json.RawMessage) (any, error) {
 		limit := 100
