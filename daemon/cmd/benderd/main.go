@@ -297,6 +297,23 @@ func registerAPIHandlers(server *api.Server, queue *task.Queue, router *llm.Rout
 		}
 		return json.RawMessage(t.Result), nil
 	})
+
+	// Logs handler
+	server.Handle("logs.get", func(ctx context.Context, params json.RawMessage) (any, error) {
+		limit := 100
+		levelFilter := ""
+		var p struct {
+			Limit int    `json:"limit"`
+			Level string `json:"level"`
+		}
+		if err := json.Unmarshal(params, &p); err == nil {
+			if p.Limit > 0 {
+				limit = p.Limit
+			}
+			levelFilter = p.Level
+		}
+		return logging.Recent(limit, levelFilter), nil
+	})
 }
 
 func escapeJSON(s string) string {

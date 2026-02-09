@@ -49,12 +49,22 @@ func (l Level) String() string {
 	}
 }
 
+// LogEntry represents a stored log entry for retrieval.
+type LogEntry struct {
+	Time    time.Time `json:"time"`
+	Level   string    `json:"level"`
+	Message string    `json:"message"`
+}
+
 type Logger struct {
 	mu        sync.Mutex
 	level     Level
 	output    io.Writer
 	file      *os.File
 	timestamp bool
+	ring      []LogEntry
+	ringSize  int
+	ringIdx   int
 }
 
 type Config struct {
@@ -67,6 +77,8 @@ func New(cfg Config) (*Logger, error) {
 	l := &Logger{
 		level:     ParseLevel(cfg.Level),
 		timestamp: cfg.Timestamp,
+		ring:      make([]LogEntry, 500),
+		ringSize:  500,
 	}
 
 	if cfg.Output == "" || cfg.Output == "stdout" {
@@ -103,16 +115,44 @@ func (l *Logger) log(level Level, format string, args ...any) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
+	now := time.Now()
 	msg := fmt.Sprintf(format, args...)
+
+	// Store in ring buffer
+	l.ring[l.ringIdx] = LogEntry{Time: now, Level: level.String(), Message: msg}
+	l.ringIdx = (l.ringIdx + 1) % l.ringSize
 
 	var line string
 	if l.timestamp {
-		line = fmt.Sprintf("%s [%s] %s\n", time.Now().Format(time.RFC3339), level, msg)
+		line = fmt.Sprintf("%s [%s] %s\n", now.Format(time.RFC3339), level, msg)
 	} else {
 		line = fmt.Sprintf("[%s] %s\n", level, msg)
 	}
 
 	l.output.Write([]byte(line))
+}
+
+// Recent returns the most recent log entries, optionally filtered by level.
+func (l *Logger) Recent(limit int, levelFilter string) []LogEntry {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	var entries []LogEntry
+	for i := 0; i < l.ringSize; i++ {
+		idx := (l.ringIdx - 1 - i + l.ringSize) % l.ringSize
+		entry := l.ring[idx]
+		if entry.Time.IsZero() {
+			continue
+		}
+		if levelFilter != "" && entry.Level != levelFilter {
+			continue
+		}
+		entries = append(entries, entry)
+		if len(entries) >= limit {
+			break
+		}
+	}
+	return entries
 }
 
 func (l *Logger) Debug(format string, args ...any) {
@@ -142,6 +182,8 @@ var defaultLogger = &Logger{
 	level:     LevelInfo,
 	output:    os.Stdout,
 	timestamp: true,
+	ring:      make([]LogEntry, 500),
+	ringSize:  500,
 }
 
 func SetDefault(l *Logger) {
@@ -162,6 +204,10 @@ func Warn(format string, args ...any) {
 
 func Error(format string, args ...any) {
 	defaultLogger.Error(format, args...)
+}
+
+func Recent(limit int, levelFilter string) []LogEntry {
+	return defaultLogger.Recent(limit, levelFilter)
 }
 
 // Fatal logs and exits
