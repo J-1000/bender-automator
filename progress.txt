@@ -131,16 +131,16 @@ COMPLETED COMPONENTS
       - Uninstall both
 
   [x] src/commands/summarize.ts
-      - Summarize clipboard or text (stub)
+      - Summarize clipboard or text via daemon
 
   [x] src/commands/classify.ts
-      - Classify file (stub)
+      - Classify file via daemon
 
   [x] src/commands/rename.ts
-      - Rename files interactively (stub)
+      - Rename files interactively via daemon
 
   [x] src/commands/commit.ts
-      - Generate commit message (stub)
+      - Generate commit message via daemon
       - Interactive approval workflow
 
   [x] src/commands/logs.ts
@@ -255,7 +255,8 @@ RECENTLY IMPLEMENTED
       - Handle conflicts (append -1, -2, etc.)
       - Create destination directories
 
-  [ ] File Rename Operation
+  [x] File Rename Operation
+      File: daemon/internal/fileops/move.go (RenameFile)
       - Rename file with new name
       - Preserve extension
       - Handle conflicts
@@ -324,10 +325,10 @@ RECENTLY IMPLEMENTED
 
 ## Testing
 
-  [ ] Daemon unit tests
-      - Config loading
-      - Task queue operations
-      - LLM provider mocking
+  [x] Daemon unit tests (24 tests passing)
+      - fileops: move, rename, conflict resolution, undo (6 tests)
+      - task queue: enqueue, get, list, cancel, sync wait (8 tests)
+      - logging: levels, formatting, ring buffer, filtering (7 tests)
 
   [ ] CLI unit tests
       - Command parsing
@@ -341,11 +342,10 @@ RECENTLY IMPLEMENTED
 
 ## Documentation
 
-  [ ] README.md
+  [x] README.md
       - Project overview
       - Installation instructions
-      - Configuration guide
-      - Usage examples
+      - Development setup
 
   [ ] CONTRIBUTING.md
       - Development setup
@@ -358,7 +358,7 @@ REMAINING TODOs
 ================================================================================
 
 1. Keychain Integration - Store API keys in macOS Keychain
-2. Tests - Unit tests for daemon, CLI, and integration tests
-3. Documentation - CONTRIBUTING.md, usage guides
+2. More test coverage - CLI unit tests, integration tests
+3. Documentation - CONTRIBUTING.md
 
 ================================================================================
