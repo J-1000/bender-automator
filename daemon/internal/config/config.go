@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/user/bender/internal/keychain"
 	"gopkg.in/yaml.v3"
 )
 
@@ -124,6 +125,7 @@ func Load(path string) (*Config, error) {
 
 	cfg.setDefaults()
 	cfg.expandPaths()
+	cfg.resolveSecrets()
 
 	return &cfg, nil
 }
@@ -168,6 +170,19 @@ func (c *Config) expandPaths() {
 	}
 	c.Screenshots.WatchDir = expandPath(c.Screenshots.WatchDir)
 	c.Screenshots.Destination = expandPath(c.Screenshots.Destination)
+}
+
+func (c *Config) resolveSecrets() {
+	for name, prov := range c.LLM.Providers {
+		if prov.APIKey != "" {
+			resolved, err := keychain.Resolve(prov.APIKey)
+			if err == nil {
+				c.LLM.Providers[name].APIKey = resolved
+			}
+			// If resolve fails for a keychain: ref, leave the original value
+			// so the error surfaces when the provider tries to use it
+		}
+	}
 }
 
 func expandPath(path string) string {

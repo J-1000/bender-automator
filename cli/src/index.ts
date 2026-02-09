@@ -129,6 +129,44 @@ uninstall
     await uninstallAgent();
   });
 
+// Keychain
+const kc = program.command('keychain').description('Manage API keys in macOS Keychain');
+
+kc
+  .command('set')
+  .description('Store an API key')
+  .argument('<provider>', 'provider name (e.g. openai, anthropic)')
+  .action(async (provider) => {
+    const { keychainSet } = await import('./commands/keychain.js');
+    await keychainSet(provider);
+  });
+
+kc
+  .command('get')
+  .description('Show stored API key (masked)')
+  .argument('<provider>', 'provider name')
+  .action(async (provider) => {
+    const { keychainGet } = await import('./commands/keychain.js');
+    await keychainGet(provider);
+  });
+
+kc
+  .command('delete')
+  .description('Remove a stored API key')
+  .argument('<provider>', 'provider name')
+  .action(async (provider) => {
+    const { keychainDelete } = await import('./commands/keychain.js');
+    await keychainDelete(provider);
+  });
+
+kc
+  .command('list')
+  .description('List stored API keys')
+  .action(async () => {
+    const { keychainList } = await import('./commands/keychain.js');
+    await keychainList();
+  });
+
 // Logs
 program
   .command('logs')

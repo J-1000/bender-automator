@@ -16,6 +16,7 @@ import (
 	"github.com/user/bender/internal/config"
 	"github.com/user/bender/internal/fileops"
 	"github.com/user/bender/internal/fswatch"
+	"github.com/user/bender/internal/keychain"
 	"github.com/user/bender/internal/llm"
 	"github.com/user/bender/internal/logging"
 	"github.com/user/bender/internal/notify"
@@ -353,6 +354,64 @@ func registerAPIHandlers(server *api.Server, queue *task.Queue, router *llm.Rout
 
 		logging.Info("moved %s -> %s", p.Source, actualDst)
 		return map[string]string{"destination": actualDst}, nil
+	})
+
+	// Keychain handlers
+	server.Handle("keychain.set", func(ctx context.Context, params json.RawMessage) (any, error) {
+		var p struct {
+			Account string `json:"account"`
+			Secret  string `json:"secret"`
+		}
+		if err := json.Unmarshal(params, &p); err != nil {
+			return nil, fmt.Errorf("parse params: %w", err)
+		}
+		if p.Account == "" || p.Secret == "" {
+			return nil, fmt.Errorf("account and secret are required")
+		}
+		if err := keychain.Set(p.Account, p.Secret); err != nil {
+			return nil, err
+		}
+		logging.Info("stored keychain entry for %s", p.Account)
+		return map[string]string{"status": "stored", "account": p.Account}, nil
+	})
+
+	server.Handle("keychain.get", func(ctx context.Context, params json.RawMessage) (any, error) {
+		var p struct {
+			Account string `json:"account"`
+		}
+		if err := json.Unmarshal(params, &p); err != nil {
+			return nil, fmt.Errorf("parse params: %w", err)
+		}
+		if p.Account == "" {
+			return nil, fmt.Errorf("account is required")
+		}
+		val, err := keychain.Get(p.Account)
+		if err != nil {
+			return nil, err
+		}
+		// Return masked value for security
+		masked := val[:4] + "..." + val[len(val)-4:]
+		if len(val) < 12 {
+			masked = "****"
+		}
+		return map[string]string{"account": p.Account, "preview": masked}, nil
+	})
+
+	server.Handle("keychain.delete", func(ctx context.Context, params json.RawMessage) (any, error) {
+		var p struct {
+			Account string `json:"account"`
+		}
+		if err := json.Unmarshal(params, &p); err != nil {
+			return nil, fmt.Errorf("parse params: %w", err)
+		}
+		if p.Account == "" {
+			return nil, fmt.Errorf("account is required")
+		}
+		if err := keychain.Delete(p.Account); err != nil {
+			return nil, err
+		}
+		logging.Info("deleted keychain entry for %s", p.Account)
+		return map[string]string{"status": "deleted", "account": p.Account}, nil
 	})
 
 	server.Handle("undo", func(ctx context.Context, params json.RawMessage) (any, error) {
