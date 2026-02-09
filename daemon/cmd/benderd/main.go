@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -106,7 +107,7 @@ func run(ctx context.Context, cfg *config.Config) error {
 	}
 
 	// Register task handlers
-	registerTaskHandlers(queue, router)
+	registerTaskHandlers(queue, router, cfg)
 
 	if err := queue.Start(); err != nil {
 		return fmt.Errorf("start task queue: %w", err)
@@ -167,56 +168,39 @@ func run(ctx context.Context, cfg *config.Config) error {
 	return nil
 }
 
-func registerTaskHandlers(queue *task.Queue, router *llm.Router) {
-	// Clipboard summarization
-	queue.RegisterHandler(task.TaskClipboardSummarize, func(ctx context.Context, payload []byte) ([]byte, error) {
-		// TODO: Implement summarization
-		logging.Debug("clipboard summarize task received")
-		return []byte(`{"summary":"TODO"}`), nil
+func registerTaskHandlers(queue *task.Queue, router *llm.Router, cfg *config.Config) {
+	queue.RegisterHandler(task.TaskClipboardSummarize, func(ctx context.Context, payload json.RawMessage) (json.RawMessage, error) {
+		return handleClipboardSummarize(ctx, payload, router)
 	})
 
-	// File classification
-	queue.RegisterHandler(task.TaskFileClassify, func(ctx context.Context, payload []byte) ([]byte, error) {
-		// TODO: Implement classification
-		logging.Debug("file classify task received")
-		return []byte(`{"category":"TODO"}`), nil
+	queue.RegisterHandler(task.TaskFileClassify, func(ctx context.Context, payload json.RawMessage) (json.RawMessage, error) {
+		return handleFileClassify(ctx, payload, router, cfg)
 	})
 
-	// File rename
-	queue.RegisterHandler(task.TaskFileRename, func(ctx context.Context, payload []byte) ([]byte, error) {
-		// TODO: Implement rename
-		logging.Debug("file rename task received")
-		return []byte(`{"new_name":"TODO"}`), nil
+	queue.RegisterHandler(task.TaskFileRename, func(ctx context.Context, payload json.RawMessage) (json.RawMessage, error) {
+		return handleFileRename(ctx, payload, router, cfg)
 	})
 
-	// Git commit
-	queue.RegisterHandler(task.TaskGitCommit, func(ctx context.Context, payload []byte) ([]byte, error) {
-		// TODO: Implement commit message generation
-		logging.Debug("git commit task received")
-		return []byte(`{"message":"TODO"}`), nil
+	queue.RegisterHandler(task.TaskGitCommit, func(ctx context.Context, payload json.RawMessage) (json.RawMessage, error) {
+		return handleGitCommit(ctx, payload, router, cfg)
 	})
 
-	// Screenshot tag
-	queue.RegisterHandler(task.TaskScreenshotTag, func(ctx context.Context, payload []byte) ([]byte, error) {
-		// TODO: Implement screenshot tagging
-		logging.Debug("screenshot tag task received")
-		return []byte(`{"tags":[]}`), nil
+	queue.RegisterHandler(task.TaskScreenshotTag, func(ctx context.Context, payload json.RawMessage) (json.RawMessage, error) {
+		return handleScreenshotTag(ctx, payload, router, cfg)
 	})
 }
 
 func registerAPIHandlers(server *api.Server, queue *task.Queue, router *llm.Router, cfg *config.Config) {
-	// Config handlers
-	server.Handle("config.get", func(ctx context.Context, params []byte) (any, error) {
+	server.Handle("config.get", func(ctx context.Context, params json.RawMessage) (any, error) {
 		return cfg, nil
 	})
 
-	server.Handle("config.reload", func(ctx context.Context, params []byte) (any, error) {
+	server.Handle("config.reload", func(ctx context.Context, params json.RawMessage) (any, error) {
 		// TODO: Implement config reload
 		return map[string]string{"status": "ok"}, nil
 	})
 
-	// Task handlers
-	server.Handle("task.queue", func(ctx context.Context, params []byte) (any, error) {
+	server.Handle("task.queue", func(ctx context.Context, params json.RawMessage) (any, error) {
 		return queue.ListTasks(100)
 	})
 }
