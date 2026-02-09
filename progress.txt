@@ -3,7 +3,7 @@ BENDER - Local AI Workflow Automator for macOS
 Project Progress Tracker
 ================================================================================
 
-Last Updated: 2026-02-01
+Last Updated: 2026-02-09
 
 ================================================================================
 COMPLETED COMPONENTS
@@ -212,76 +212,69 @@ COMPLETED COMPONENTS
 
 
 ================================================================================
-NOT YET IMPLEMENTED (TODOs)
+RECENTLY IMPLEMENTED
 ================================================================================
 
-## Daemon Task Handlers (CRITICAL - Core functionality)
+## Daemon Task Handlers (All 5 completed)
 
-  [ ] Clipboard Summarization Handler
-      File: daemon/cmd/benderd/main.go (registerTaskHandlers)
-      - Parse payload to get content
-      - Build prompt for summarization
-      - Call LLM router
-      - Return summary in response
-      - Optionally store for later retrieval
+  [x] Clipboard Summarization Handler
+      File: daemon/cmd/benderd/handlers.go
+      - Parses content from payload
+      - Sends to LLM with summarization prompt
+      - Returns summary
 
-  [ ] File Classification Handler
-      - Read file metadata (name, size, extension)
-      - Optionally extract content preview
-      - Build classification prompt with categories
-      - Call LLM to determine category
-      - Return suggested destination path
+  [x] File Classification Handler
+      - Extension-based fast path + LLM fallback
+      - Reads file metadata and content preview
+      - Builds classification prompt with categories from config
+      - Returns category, destination, confidence
 
-  [ ] File Rename Handler
-      - Extract file content/metadata
-      - For images: could add EXIF reading
-      - Build rename prompt with naming convention
-      - Call LLM for suggested name
-      - Return new filename
+  [x] File Rename Handler
+      - Extracts file metadata
+      - Builds rename prompt with naming convention
+      - Supports date prefix/suffix
+      - Returns suggested name
 
-  [ ] Git Commit Message Handler
-      - Receive diff and file list
-      - Build prompt for conventional commit format
-      - Call LLM
-      - Return formatted commit message
+  [x] Git Commit Message Handler
+      - Receives diff and file list
+      - Generates conventional/simple/detailed format
+      - Splits into subject and body
 
-  [ ] Screenshot Tagging Handler
-      - Read image file
-      - Use vision-capable LLM
-      - Extract app name, description, tags
-      - Return tags and suggested filename
+  [x] Screenshot Tagging Handler
+      - Reads image, uses vision LLM
+      - Extracts app, description, tags as JSON
+      - Generates suggested filename
 
 --------------------------------------------------------------------------------
 
-## File Operations (CRITICAL - Actually do things)
+## File Operations (All completed)
 
-  [ ] File Move Operation
-      File: NEW - daemon/internal/fileops/move.go
+  [x] File Move Operation
+      File: daemon/internal/fileops/move.go
       - Move file to destination
       - Handle conflicts (append -1, -2, etc.)
-      - Log operation for undo
+      - Create destination directories
 
   [ ] File Rename Operation
       - Rename file with new name
       - Preserve extension
       - Handle conflicts
 
-  [ ] Undo System
-      File: NEW - daemon/internal/fileops/undo.go
-      - Track all file operations in SQLite
-      - Store original path, new path, timestamp
-      - Implement undo by task ID
-      - 24-hour retention window
+  [x] Undo System
+      File: daemon/internal/fileops/undo.go
+      - SQLite-backed operation tracking
+      - Undo by task ID
+      - 24-hour retention with cleanup
 
 --------------------------------------------------------------------------------
 
 ## macOS Integration
 
-  [ ] Notifications
-      File: NEW - daemon/internal/notify/notify.go
-      - Send macOS notifications via osascript
-      - Configurable sound
-      - Show preview of result
+  [x] Notifications
+      File: daemon/internal/notify/notify.go
+      - macOS notifications via osascript
+      - Configurable sound and preview
+      - Integrated into clipboard monitor
 
   [ ] Keychain Integration
       - Store API keys in macOS Keychain
@@ -291,36 +284,41 @@ NOT YET IMPLEMENTED (TODOs)
 
 ## Dashboard Pages
 
-  [ ] Config Page (/config)
+  [x] Config Page (/config)
       File: dashboard/app/config/page.tsx
-      - Visual config editor
-      - Form fields for each section
-      - Save to daemon
-      - Test LLM connection buttons
+      - Visual config editor with all sections
+      - Toggle switches, dropdowns, number inputs
+      - Save to daemon and reload support
 
-  [ ] Logs Page (/logs)
+  [x] Logs Page (/logs)
       File: dashboard/app/logs/page.tsx
-      - Real-time log streaming (SSE)
-      - Level filtering
-      - Search functionality
-      - Export capability
+      - Real-time log viewer with auto-refresh
+      - Level filtering and search
+      - Ring buffer in logger for API retrieval
 
-  [ ] Task Detail View
-      - Click on task to see details
-      - View payload and result
+  [x] Task Detail View
+      - Click task rows to see full detail
+      - View payload and result JSON
       - Undo button for file operations
+
+  [x] Shared daemon client helper (dashboard/lib/daemon.ts)
 
 --------------------------------------------------------------------------------
 
-## API Handlers (Daemon)
+## API Handlers (Daemon) - All completed
 
-  [ ] config.set - Update configuration
-  [ ] config.reload - Hot reload config
-  [ ] clipboard.get_summary - Retrieve last summary
-  [ ] file.move - Execute file move
-  [ ] task.cancel - Cancel pending task
-  [ ] task.history - Get task history with filters
-  [ ] logs.stream - Stream logs via socket
+  [x] config.set - Update configuration
+  [x] config.reload - Hot reload config
+  [x] clipboard.summarize - Synchronous summarization
+  [x] clipboard.get_summary - Retrieve last summary
+  [x] file.classify - Synchronous classification
+  [x] file.rename - Synchronous rename suggestion
+  [x] file.move - Execute file move with undo tracking
+  [x] git.generate_commit - Synchronous commit message
+  [x] task.cancel - Cancel pending task
+  [x] task.history - Get task history with filters
+  [x] logs.get - Retrieve recent log entries
+  [x] undo - Reverse file operations by task ID
 
 --------------------------------------------------------------------------------
 
@@ -356,70 +354,11 @@ NOT YET IMPLEMENTED (TODOs)
 
 
 ================================================================================
-PRIORITY ORDER FOR COMPLETION
+REMAINING TODOs
 ================================================================================
 
-1. HIGH - Task Handlers
-   Implement the actual LLM-powered functionality in registerTaskHandlers()
-   This is what makes the app useful.
-
-2. HIGH - File Operations
-   Create fileops package to actually move/rename files safely.
-
-3. MEDIUM - API Handlers
-   Complete remaining daemon API methods.
-
-4. MEDIUM - Dashboard Pages
-   Add config editor and logs viewer.
-
-5. LOW - Notifications
-   Add macOS notification support.
-
-6. LOW - Tests
-   Add comprehensive test coverage.
-
-7. LOW - Documentation
-   Write README and guides.
-
-
-================================================================================
-COMMIT HISTORY (34 commits)
-================================================================================
-
-a12a916 feat: add install and uninstall scripts
-09f51e2 feat(dashboard): add StatusBadge component
-12b5ac5 feat(dashboard): add tasks page
-35ddd3d feat(dashboard): add daemon status API route
-d907fd2 feat(dashboard): add layout and home page
-bd5450e feat(dashboard): add Next.js project setup
-19582ea feat(cli): add logs command
-2e5eec0 feat(cli): add ad-hoc task commands
-6a271da feat(cli): add install/uninstall commands
-911462c feat(cli): add config management command
-b4a5f9b feat(cli): add daemon management commands
-fd95f5c feat(cli): add daemon client library
-bc3cad3 feat(daemon): wire all components together
-5318260 feat(git): implement git integration
-bc5caa0 feat(fswatch): implement file system watcher
-46a7711 feat(clipboard): implement clipboard monitor for macOS
-9bb4d10 feat(task): implement task queue with SQLite persistence
-41d2b39 feat(llm): add provider router
-a81a0fe feat(llm): implement Anthropic provider
-23aedc6 feat(llm): implement OpenAI provider
-76b00a2 feat(llm): implement Ollama provider
-8a177c8 feat(llm): define Provider interface and types
-632e5d5 feat(daemon): add status and health check handlers
-e3808e1 feat(daemon): add JSON-RPC API server over Unix socket
-c30545f feat(daemon): integrate config and logging in main
-b207696 feat(daemon): add logging package
-431eca4 feat(daemon): add configuration loading package
-4c9525c feat(config): add JSON schema for configuration validation
-64d028d feat(config): add default configuration file
-3449cd7 feat(cli): add main entry point with command structure
-8d8be36 feat(cli): add package.json and TypeScript config
-158a962 feat(daemon): add main entry point with graceful shutdown
-f88ea75 fix: update gitignore to not exclude benderd directory
-ca4a87d chore: add project directory structure
-0d82d1c chore: initial project setup with PRD
+1. Keychain Integration - Store API keys in macOS Keychain
+2. Tests - Unit tests for daemon, CLI, and integration tests
+3. Documentation - CONTRIBUTING.md, usage guides
 
 ================================================================================
