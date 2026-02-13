@@ -123,8 +123,11 @@ func run(ctx context.Context, cfg *config.Config) error {
 		ShowPreviews: cfg.Notifications.ShowPreviews,
 	})
 
+	// Initialize pipeline runner
+	pipelines := NewPipelineRunner(router, cfg, undoMgr, notifier)
+
 	// Register task handlers
-	registerTaskHandlers(queue, router, cfg)
+	registerTaskHandlers(queue, router, cfg, pipelines)
 
 	if err := queue.Start(); err != nil {
 		return fmt.Errorf("start task queue: %w", err)
@@ -188,7 +191,7 @@ func run(ctx context.Context, cfg *config.Config) error {
 	return nil
 }
 
-func registerTaskHandlers(queue *task.Queue, router *llm.Router, cfg *config.Config) {
+func registerTaskHandlers(queue *task.Queue, router *llm.Router, cfg *config.Config, pipelines *PipelineRunner) {
 	queue.RegisterHandler(task.TaskClipboardSummarize, func(ctx context.Context, payload json.RawMessage) (json.RawMessage, error) {
 		return handleClipboardSummarize(ctx, payload, router)
 	})
@@ -208,6 +211,9 @@ func registerTaskHandlers(queue *task.Queue, router *llm.Router, cfg *config.Con
 	queue.RegisterHandler(task.TaskScreenshotTag, func(ctx context.Context, payload json.RawMessage) (json.RawMessage, error) {
 		return handleScreenshotTag(ctx, payload, router, cfg)
 	})
+
+	queue.RegisterHandler(task.TaskPipelineAutoFile, pipelines.RunAutoFilePipeline)
+	queue.RegisterHandler(task.TaskPipelineScreenshot, pipelines.RunScreenshotPipeline)
 }
 
 func registerAPIHandlers(server *api.Server, queue *task.Queue, router *llm.Router, cfg *config.Config, undoMgr *fileops.UndoManager) {
