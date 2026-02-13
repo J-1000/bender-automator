@@ -61,3 +61,26 @@ Add the new fields with sensible defaults.
 8. Return `{original_path, final_path, app, description, tags[], steps[]}`
 
 **Key design**: Pipeline handlers call existing handlers as Go functions (not re-queuing). Each pipeline IS a task handler itself, getting retry/timeout from the queue. Rename steps are non-fatal (best-effort).
+
+### 5. Wire up — `daemon/cmd/benderd/main.go`
+
+**Create PipelineRunner** after notifier init, pass to `registerTaskHandlers`.
+
+**Register pipeline handlers:**
+```go
+queue.RegisterHandler(task.TaskPipelineAutoFile, pipelines.RunAutoFilePipeline)
+queue.RegisterHandler(task.TaskPipelineScreenshot, pipelines.RunScreenshotPipeline)
+```
+
+**Update file watcher handler** — if `auto_move` is true, enqueue `pipeline.auto_file` instead of `file.classify`. Otherwise keep current classify-only behavior.
+
+**Add screenshot watcher** — second `fswatch.Watcher` instance watching `cfg.Screenshots.WatchDir`. Filters by image extensions (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`). On EventCreate, enqueues `pipeline.screenshot`.
+
+**Add API handlers:**
+- `pipeline.status` — returns enabled/disabled state, config for both pipelines
+- `pipeline.auto_file` — sync execution via `EnqueueAndWait` (for CLI)
+- `pipeline.screenshot` — sync execution via `EnqueueAndWait` (for CLI)
+
+**Edge case**: If screenshot `watch_dir` overlaps with auto-file `watch_dirs`, skip image files in the auto-file handler to avoid double-processing.
+
+**Timeout**: Pipeline tasks involve LLM calls + file I/O. Increase timeout for pipeline tasks or document that `queue.default_timeout_seconds` should be >= 60 when pipelines are active.
