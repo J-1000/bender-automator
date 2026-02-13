@@ -460,6 +460,43 @@ func registerAPIHandlers(server *api.Server, queue *task.Queue, router *llm.Rout
 		return map[string]string{"status": "deleted", "account": p.Account}, nil
 	})
 
+	// Pipeline handlers
+	server.Handle("pipeline.status", func(ctx context.Context, params json.RawMessage) (any, error) {
+		return map[string]any{
+			"auto_file": map[string]any{
+				"enabled":        cfg.AutoFile.Enabled && cfg.AutoFile.AutoMove,
+				"auto_move":      cfg.AutoFile.AutoMove,
+				"auto_rename":    cfg.AutoFile.AutoRename,
+				"settle_delay_ms": cfg.AutoFile.SettleDelayMs,
+				"watch_dirs":     cfg.AutoFile.WatchDirs,
+			},
+			"screenshot": map[string]any{
+				"enabled":        cfg.Screenshots.Enabled,
+				"use_vision":     cfg.Screenshots.UseVision,
+				"rename":         cfg.Screenshots.Rename,
+				"settle_delay_ms": cfg.Screenshots.SettleDelayMs,
+				"watch_dir":      cfg.Screenshots.WatchDir,
+				"destination":    cfg.Screenshots.Destination,
+			},
+		}, nil
+	})
+
+	server.Handle("pipeline.auto_file", func(ctx context.Context, params json.RawMessage) (any, error) {
+		t, err := queue.EnqueueAndWait(ctx, task.TaskPipelineAutoFile, params, 1)
+		if err != nil {
+			return nil, err
+		}
+		return json.RawMessage(t.Result), nil
+	})
+
+	server.Handle("pipeline.screenshot", func(ctx context.Context, params json.RawMessage) (any, error) {
+		t, err := queue.EnqueueAndWait(ctx, task.TaskPipelineScreenshot, params, 1)
+		if err != nil {
+			return nil, err
+		}
+		return json.RawMessage(t.Result), nil
+	})
+
 	server.Handle("undo", func(ctx context.Context, params json.RawMessage) (any, error) {
 		var p struct {
 			TaskID string `json:"task_id"`
