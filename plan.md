@@ -139,3 +139,27 @@ Update `isFileOperation` check to include `pipeline.auto_file` and `pipeline.scr
 - Test `pipeline.status` RPC call and response shape
 - Test `pipeline.auto_file` RPC call with path param
 - Test `pipeline.screenshot` RPC call with path param
+
+---
+
+## Files Changed
+
+| File | Action | What |
+|------|--------|------|
+| `daemon/internal/config/config.go` | modify | Add AutoMove, AutoRename, SettleDelayMs fields + defaults |
+| `daemon/internal/task/queue.go` | modify | Add 2 task type constants, inject task ID into context |
+| `daemon/cmd/benderd/pipelines.go` | **create** | PipelineRunner, both pipeline handlers, waitForSettle |
+| `daemon/cmd/benderd/main.go` | modify | Create PipelineRunner, register handlers, update watcher, add screenshot watcher, add 3 API handlers |
+| `configs/default.yaml` | modify | Add new config fields |
+| `configs/schema.json` | modify | Add schema for new fields |
+| `cli/src/commands/pipeline.ts` | **create** | pipelineStatus, pipelineRun |
+| `cli/src/index.ts` | modify | Register pipeline subcommand |
+| `dashboard/app/api/pipelines/route.ts` | **create** | GET proxy to pipeline.status |
+| `dashboard/app/pipelines/page.tsx` | **create** | Pipeline status + activity page |
+| `dashboard/app/layout.tsx` | modify | Add Pipelines nav link |
+| `dashboard/app/config/page.tsx` | modify | Add new config toggles |
+| `dashboard/app/tasks/page.tsx` | modify | Undo support for pipeline types |
+| `daemon/cmd/benderd/pipelines_test.go` | **create** | waitForSettle tests |
+| `cli/src/__tests__/commands.test.ts` | modify | Pipeline RPC tests |
+
+**No changes**: `handlers.go` (stays pure), `fswatch/watcher.go` (reused as-is), `fileops/` (reused as-is), `notify/` (reused as-is)
