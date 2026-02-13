@@ -51,6 +51,9 @@ type AutoFileConfig struct {
 	ExcludePatterns      []string   `yaml:"exclude_patterns"`
 	Categories           []Category `yaml:"categories"`
 	UseLLMClassification bool       `yaml:"use_llm_classification"`
+	AutoMove             bool       `yaml:"auto_move"`
+	AutoRename           bool       `yaml:"auto_rename"`
+	SettleDelayMs        int        `yaml:"settle_delay_ms"`
 }
 
 type Category struct {
@@ -88,6 +91,7 @@ type ScreenshotsConfig struct {
 	AddMetadataTags bool   `yaml:"add_metadata_tags"`
 	UseVision       bool   `yaml:"use_vision"`
 	VisionProvider  string `yaml:"vision_provider"`
+	SettleDelayMs   int    `yaml:"settle_delay_ms"`
 }
 
 type QueueConfig struct {
@@ -148,6 +152,12 @@ func (c *Config) setDefaults() {
 	}
 	if c.Queue.MaxRetries == 0 {
 		c.Queue.MaxRetries = 3
+	}
+	if c.AutoFile.SettleDelayMs == 0 {
+		c.AutoFile.SettleDelayMs = 3000
+	}
+	if c.Screenshots.SettleDelayMs == 0 {
+		c.Screenshots.SettleDelayMs = 2000
 	}
 	if c.Logging.Level == "" {
 		c.Logging.Level = "info"
