@@ -79,7 +79,8 @@ export default function TasksPage() {
   }
 
   function isFileOperation(type: string) {
-    return type === 'file.classify' || type === 'file.rename';
+    return type === 'file.classify' || type === 'file.rename' ||
+      type === 'pipeline.auto_file' || type === 'pipeline.screenshot';
   }
 
   function formatJSON(str: string | undefined) {
