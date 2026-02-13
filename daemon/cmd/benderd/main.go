@@ -174,7 +174,16 @@ func run(ctx context.Context, cfg *config.Config) error {
 			ExcludePatterns: cfg.AutoFile.ExcludePatterns,
 			IgnoreHidden:    cfg.AutoFile.IgnoreHidden,
 			Handler: func(event fswatch.Event) {
-				if event.Type == fswatch.EventCreate {
+				if event.Type != fswatch.EventCreate {
+					return
+				}
+				// Skip image files if screenshot pipeline is active to avoid double-processing
+				if cfg.Screenshots.Enabled && isImageExtension(event.Path) {
+					return
+				}
+				if cfg.AutoFile.AutoMove {
+					queue.Enqueue(task.TaskPipelineAutoFile, []byte(`{"path":"`+escapeJSON(event.Path)+`"}`), 0)
+				} else {
 					queue.Enqueue(task.TaskFileClassify, []byte(`{"path":"`+escapeJSON(event.Path)+`"}`), 0)
 				}
 			},
@@ -183,6 +192,29 @@ func run(ctx context.Context, cfg *config.Config) error {
 			logging.Warn("failed to start file watcher: %v", err)
 		} else {
 			defer fileWatcher.Stop()
+		}
+	}
+
+	// Initialize screenshot watcher
+	var screenshotWatcher *fswatch.Watcher
+	if cfg.Screenshots.Enabled && cfg.Screenshots.WatchDir != "" {
+		screenshotWatcher = fswatch.NewWatcher(fswatch.Config{
+			Dirs:         []string{cfg.Screenshots.WatchDir},
+			IgnoreHidden: true,
+			Handler: func(event fswatch.Event) {
+				if event.Type != fswatch.EventCreate {
+					return
+				}
+				if !isImageExtension(event.Path) {
+					return
+				}
+				queue.Enqueue(task.TaskPipelineScreenshot, []byte(`{"path":"`+escapeJSON(event.Path)+`"}`), 0)
+			},
+		})
+		if err := screenshotWatcher.Start(); err != nil {
+			logging.Warn("failed to start screenshot watcher: %v", err)
+		} else {
+			defer screenshotWatcher.Stop()
 		}
 	}
 
