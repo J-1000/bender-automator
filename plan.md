@@ -99,3 +99,25 @@ bender pipeline status        — show pipeline status
 bender pipeline run auto-file <file>  — manually trigger auto-file pipeline
 bender pipeline run screenshot <file> — manually trigger screenshot pipeline
 ```
+
+---
+
+## Phase 4: Dashboard
+
+### 8. API route — `dashboard/app/api/pipelines/route.ts` (new)
+GET handler proxying to `pipeline.status`.
+
+### 9. Pipelines page — `dashboard/app/pipelines/page.tsx` (new)
+- Two status cards (auto-file, screenshot) showing enabled/config
+- Recent pipeline activity list (filtered from task queue by `pipeline.*` types)
+- Undo buttons for completed pipeline tasks
+- Auto-refresh every 5s (matching existing tasks page pattern)
+
+### 10. Nav link — `dashboard/app/layout.tsx`
+Add "Pipelines" link between Tasks and Config.
+
+### 11. Config page — `dashboard/app/config/page.tsx`
+Add toggles for `auto_move`, `auto_rename`, number input for `settle_delay_ms` in Auto File section. Add `settle_delay_ms` in Screenshots section.
+
+### 12. Tasks page — `dashboard/app/tasks/page.tsx`
+Update `isFileOperation` check to include `pipeline.auto_file` and `pipeline.screenshot` so undo button appears for pipeline tasks.
