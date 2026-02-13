@@ -102,6 +102,111 @@ describe('CLI commands - RPC integration', () => {
     });
   });
 
+  // pipeline.status tests
+  describe('pipeline.status', () => {
+    it('should call pipeline.status and return both pipelines', async () => {
+      let capturedMethod = '';
+
+      await startMockServer((method) => {
+        capturedMethod = method;
+        return {
+          auto_file: {
+            enabled: true,
+            auto_move: true,
+            auto_rename: false,
+            settle_delay_ms: 3000,
+            watch_dirs: ['~/Downloads'],
+          },
+          screenshot: {
+            enabled: true,
+            use_vision: true,
+            rename: true,
+            settle_delay_ms: 2000,
+            watch_dir: '~/Desktop',
+            destination: '~/Pictures/Screenshots',
+          },
+        };
+      });
+
+      const result = await client.call<any>('pipeline.status');
+
+      expect(capturedMethod).toBe('pipeline.status');
+      expect(result.auto_file.enabled).toBe(true);
+      expect(result.auto_file.auto_move).toBe(true);
+      expect(result.auto_file.settle_delay_ms).toBe(3000);
+      expect(result.screenshot.enabled).toBe(true);
+      expect(result.screenshot.use_vision).toBe(true);
+      expect(result.screenshot.destination).toBe('~/Pictures/Screenshots');
+    });
+  });
+
+  // pipeline.auto_file tests
+  describe('pipeline.auto_file', () => {
+    it('should call pipeline.auto_file with path param', async () => {
+      let capturedMethod = '';
+      let capturedParams: any = null;
+
+      await startMockServer((method, params) => {
+        capturedMethod = method;
+        capturedParams = params;
+        return {
+          original_path: '/tmp/test.pdf',
+          final_path: '/docs/test.pdf',
+          category: 'documents',
+          new_name: 'quarterly-report.pdf',
+          steps: [
+            { name: 'settle', status: 'ok' },
+            { name: 'classify', status: 'ok', detail: 'documents' },
+            { name: 'move', status: 'ok', detail: '/docs/test.pdf' },
+            { name: 'rename', status: 'ok', detail: 'quarterly-report.pdf' },
+          ],
+        };
+      });
+
+      const result = await client.call<any>('pipeline.auto_file', { path: '/tmp/test.pdf' });
+
+      expect(capturedMethod).toBe('pipeline.auto_file');
+      expect(capturedParams.path).toBe('/tmp/test.pdf');
+      expect(result.category).toBe('documents');
+      expect(result.steps).toHaveLength(4);
+      expect(result.steps[0].name).toBe('settle');
+    });
+  });
+
+  // pipeline.screenshot tests
+  describe('pipeline.screenshot', () => {
+    it('should call pipeline.screenshot with path param', async () => {
+      let capturedMethod = '';
+      let capturedParams: any = null;
+
+      await startMockServer((method, params) => {
+        capturedMethod = method;
+        capturedParams = params;
+        return {
+          original_path: '/tmp/screenshot.png',
+          final_path: '/pics/safari-browser.png',
+          app: 'Safari',
+          description: 'Browser window showing docs',
+          tags: ['browser', 'web'],
+          steps: [
+            { name: 'settle', status: 'ok' },
+            { name: 'tag', status: 'ok', detail: 'Browser window showing docs' },
+            { name: 'rename', status: 'ok', detail: 'safari-browser.png' },
+            { name: 'move', status: 'ok', detail: '/pics/safari-browser.png' },
+          ],
+        };
+      });
+
+      const result = await client.call<any>('pipeline.screenshot', { path: '/tmp/screenshot.png' });
+
+      expect(capturedMethod).toBe('pipeline.screenshot');
+      expect(capturedParams.path).toBe('/tmp/screenshot.png');
+      expect(result.app).toBe('Safari');
+      expect(result.tags).toEqual(['browser', 'web']);
+      expect(result.steps).toHaveLength(4);
+    });
+  });
+
   // task.history tests
   describe('task.history', () => {
     it('should call task.history with limit param', async () => {
