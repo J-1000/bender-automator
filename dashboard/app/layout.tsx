@@ -36,6 +36,12 @@ export default function RootLayout({
                   Tasks
                 </a>
                 <a
+                  href="/pipelines"
+                  className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                >
+                  Pipelines
+                </a>
+                <a
                   href="/config"
                   className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                 >
