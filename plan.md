@@ -121,3 +121,21 @@ Add toggles for `auto_move`, `auto_rename`, number input for `settle_delay_ms` i
 
 ### 12. Tasks page — `dashboard/app/tasks/page.tsx`
 Update `isFileOperation` check to include `pipeline.auto_file` and `pipeline.screenshot` so undo button appears for pipeline tasks.
+
+---
+
+## Phase 5: Tests
+
+### 13. `daemon/cmd/benderd/pipelines_test.go` (new)
+- `TestWaitForSettle` — happy path with stable file
+- `TestWaitForSettleMissingFile` — file doesn't exist
+- `TestWaitForSettleContextCancel` — cancelled context
+
+### 14. `daemon/internal/task/queue_test.go`
+- Test new task type constants exist
+- Test context value injection in processTask
+
+### 15. `cli/src/__tests__/commands.test.ts`
+- Test `pipeline.status` RPC call and response shape
+- Test `pipeline.auto_file` RPC call with path param
+- Test `pipeline.screenshot` RPC call with path param
