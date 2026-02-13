@@ -21,6 +21,8 @@ const (
 	TaskFileRename         TaskType = "file.rename"
 	TaskGitCommit          TaskType = "git.commit"
 	TaskScreenshotTag      TaskType = "screenshot.tag"
+	TaskPipelineAutoFile   TaskType = "pipeline.auto_file"
+	TaskPipelineScreenshot TaskType = "pipeline.screenshot"
 )
 
 // TaskStatus represents the status of a task
@@ -32,6 +34,19 @@ const (
 	StatusCompleted TaskStatus = "completed"
 	StatusFailed    TaskStatus = "failed"
 )
+
+// contextKey is an unexported type for context keys in this package.
+type contextKey string
+
+const taskIDKey contextKey = "taskID"
+
+// TaskIDFromContext extracts the task ID from a context, if present.
+func TaskIDFromContext(ctx context.Context) string {
+	if v, ok := ctx.Value(taskIDKey).(string); ok {
+		return v
+	}
+	return ""
+}
 
 // Task represents a queued task
 type Task struct {
@@ -230,9 +245,10 @@ func (q *Queue) processTask(task *Task) {
 	task.StartedAt = &now
 	q.updateTask(task)
 
-	// Execute with timeout
+	// Execute with timeout, injecting task ID into context
 	ctx, cancel := context.WithTimeout(q.ctx, q.taskTimeout)
 	defer cancel()
+	ctx = context.WithValue(ctx, taskIDKey, task.ID)
 
 	result, err := handler(ctx, task.Payload)
 	finishedAt := time.Now()
