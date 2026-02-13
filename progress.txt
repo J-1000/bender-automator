@@ -3,7 +3,7 @@ BENDER - Local AI Workflow Automator for macOS
 Project Progress Tracker
 ================================================================================
 
-Last Updated: 2026-02-09
+Last Updated: 2026-02-13
 
 ================================================================================
 COMPLETED COMPONENTS
@@ -69,6 +69,7 @@ COMPLETED COMPONENTS
       - Worker pool (configurable)
       - Retry with backoff
       - Task timeout handling
+      - Task ID injection into handler context
 
   [x] internal/clipboard/monitor.go
       - Poll-based monitoring (pbpaste)
@@ -162,6 +163,11 @@ COMPLETED COMPONENTS
       - Follow mode
       - Level filtering
 
+  [x] src/commands/pipeline.ts
+      - Pipeline status display (both pipelines)
+      - Manual pipeline execution with spinner
+      - Step-by-step output for auto-file and screenshot
+
 --------------------------------------------------------------------------------
 
 ## Dashboard (Next.js) - dashboard/
@@ -197,6 +203,15 @@ COMPLETED COMPONENTS
 
   [x] components/StatusBadge.tsx
       - Reusable status indicator
+
+  [x] app/pipelines/page.tsx
+      - Auto-file and screenshot status cards
+      - Recent pipeline activity table (filtered by pipeline.* types)
+      - Undo buttons for completed pipeline tasks
+      - Auto-refresh every 5s
+
+  [x] app/api/pipelines/route.ts
+      - GET proxy to daemon pipeline.status
 
 --------------------------------------------------------------------------------
 
@@ -338,23 +353,26 @@ RECENTLY IMPLEMENTED
   [x] task.history - Get task history with filters
   [x] logs.get - Retrieve recent log entries
   [x] undo - Reverse file operations by task ID
+  [x] pipeline.status - Pipeline config/enabled state
+  [x] pipeline.auto_file - Sync auto-file pipeline execution
+  [x] pipeline.screenshot - Sync screenshot pipeline execution
 
 --------------------------------------------------------------------------------
 
 ## Testing
 
-  [x] Daemon unit tests (31 tests passing)
+  [x] Daemon unit tests (36 tests passing)
       - fileops: move, rename, conflict resolution, undo (6 tests)
-      - task queue: enqueue, get, list, cancel, sync wait (8 tests)
+      - task queue: enqueue, get, list, cancel, sync wait, context injection (11 tests)
       - logging: levels, formatting, ring buffer, filtering (7 tests)
       - api: server lifecycle, method dispatch, errors, status handlers (7 tests)
-      - config: (3 tests via integration)
+      - pipelines: waitForSettle, isImageExtension (5 tests)
 
-  [x] CLI unit tests (28 tests passing)
+  [x] CLI unit tests (31 tests passing)
       - client: JSON-RPC communication, errors, connection handling (7 tests)
       - config: nested value get/set helpers (8 tests)
       - logs: log level detection and colorization (6 tests)
-      - commands: screenshot, undo, tasks RPC + validation (7 tests)
+      - commands: screenshot, undo, tasks, pipeline RPC + validation (10 tests)
 
   [x] Integration tests
       - API server + handler end-to-end tests via Unix socket
@@ -377,10 +395,62 @@ RECENTLY IMPLEMENTED
 
 
 ================================================================================
+RECENTLY IMPLEMENTED (Feb 13 2026)
+================================================================================
+
+## Automation Pipelines
+
+  [x] Pipeline Runner
+      File: daemon/cmd/benderd/pipelines.go
+      - PipelineRunner struct orchestrating multi-step workflows
+      - waitForSettle: file size stabilization check before processing
+      - RunAutoFilePipeline: settle → classify → move → rename → notify
+      - RunScreenshotPipeline: settle → tag (vision) → rename → move → notify
+      - All steps record undo operations with task ID
+      - Rename steps are best-effort (non-fatal)
+
+  [x] Config Fields
+      - auto_file: auto_move, auto_rename, settle_delay_ms
+      - screenshots: settle_delay_ms
+
+  [x] Task Types
+      - pipeline.auto_file, pipeline.screenshot constants
+      - Task ID injected into handler context for undo recording
+
+  [x] File Watcher Updates
+      - Auto-file watcher enqueues pipeline.auto_file when auto_move enabled
+      - Skips image files when screenshot pipeline is active (no double-processing)
+      - New screenshot watcher for image files in screenshots.watch_dir
+
+  [x] Pipeline API Handlers
+      - pipeline.status — config/enabled state for both pipelines
+      - pipeline.auto_file — sync execution via EnqueueAndWait
+      - pipeline.screenshot — sync execution via EnqueueAndWait
+
+  [x] CLI Commands
+      - bender pipeline status — show both pipeline states
+      - bender pipeline run auto-file <file> — manual auto-file pipeline
+      - bender pipeline run screenshot <file> — manual screenshot pipeline
+
+  [x] Dashboard
+      - /pipelines page with status cards and activity table
+      - Pipelines nav link between Tasks and Config
+      - Config page: auto_move, auto_rename, settle_delay_ms toggles
+      - Config page: new Screenshots section
+      - Tasks page: undo support for pipeline.* task types
+
+  [x] Tests
+      - Go: waitForSettle (4 tests), isImageExtension, pipeline task types,
+        context injection, empty context (8 new tests)
+      - CLI: pipeline.status, pipeline.auto_file, pipeline.screenshot RPC (3 new tests)
+
+--------------------------------------------------------------------------------
+
+================================================================================
 ALL TASKS COMPLETED
 ================================================================================
 
 All planned features, tests, and documentation are complete.
-59 total tests passing (31 daemon + 28 CLI).
+67 total tests passing (36 daemon + 31 CLI).
 
 ================================================================================
