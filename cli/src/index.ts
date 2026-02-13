@@ -119,6 +119,27 @@ program
     await tasks(options);
   });
 
+// Pipelines
+const pipeline = program.command('pipeline').description('Manage automation pipelines');
+
+pipeline
+  .command('status')
+  .description('Show pipeline status')
+  .action(async () => {
+    const { pipelineStatus } = await import('./commands/pipeline.js');
+    await pipelineStatus();
+  });
+
+pipeline
+  .command('run')
+  .description('Manually trigger a pipeline on a file')
+  .argument('<type>', 'pipeline type: auto-file or screenshot')
+  .argument('<file>', 'file to process')
+  .action(async (type, file) => {
+    const { pipelineRun } = await import('./commands/pipeline.js');
+    await pipelineRun(type, file);
+  });
+
 // Installation
 const install = program.command('install').description('Install components');
 
