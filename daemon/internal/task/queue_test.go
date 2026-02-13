@@ -140,6 +140,53 @@ func TestCancelTaskNotFound(t *testing.T) {
 	}
 }
 
+func TestPipelineTaskTypes(t *testing.T) {
+	if TaskPipelineAutoFile != "pipeline.auto_file" {
+		t.Errorf("expected pipeline.auto_file, got %s", TaskPipelineAutoFile)
+	}
+	if TaskPipelineScreenshot != "pipeline.screenshot" {
+		t.Errorf("expected pipeline.screenshot, got %s", TaskPipelineScreenshot)
+	}
+}
+
+func TestTaskIDInContext(t *testing.T) {
+	q := newTestQueue(t)
+
+	var capturedID string
+	q.RegisterHandler(TaskClipboardSummarize, func(ctx context.Context, payload json.RawMessage) (json.RawMessage, error) {
+		capturedID = TaskIDFromContext(ctx)
+		return json.RawMessage(`{"ok":true}`), nil
+	})
+
+	q.Start()
+	defer q.Stop()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := q.EnqueueAndWait(ctx, TaskClipboardSummarize, json.RawMessage(`{}`), 0)
+	if err != nil {
+		t.Fatalf("EnqueueAndWait: %v", err)
+	}
+	if result.Status != StatusCompleted {
+		t.Fatalf("expected completed, got %s", result.Status)
+	}
+	if capturedID == "" {
+		t.Error("expected task ID in context, got empty string")
+	}
+	if capturedID != result.ID {
+		t.Errorf("context task ID %q != result task ID %q", capturedID, result.ID)
+	}
+}
+
+func TestTaskIDFromContextEmpty(t *testing.T) {
+	ctx := context.Background()
+	id := TaskIDFromContext(ctx)
+	if id != "" {
+		t.Errorf("expected empty string, got %q", id)
+	}
+}
+
 func TestEnqueueAndWait(t *testing.T) {
 	q := newTestQueue(t)
 
