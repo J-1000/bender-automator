@@ -28,6 +28,9 @@ interface Config {
     watch_dirs: string[];
     destination_root: string;
     use_llm_classification: boolean;
+    auto_move: boolean;
+    auto_rename: boolean;
+    settle_delay_ms: number;
   };
   git: {
     enabled: boolean;
@@ -43,6 +46,7 @@ interface Config {
     rename: boolean;
     use_vision: boolean;
     vision_provider: string;
+    settle_delay_ms: number;
   };
   queue: {
     max_concurrent: number;
@@ -269,6 +273,77 @@ export default function ConfigPage() {
             onChange={(v) => updateConfig('auto_file.use_llm_classification', v)}
           />
         </div>
+        <div className="flex items-center justify-between">
+          <span className="text-gray-700 dark:text-gray-300">Auto Move</span>
+          <Toggle
+            checked={config.auto_file.auto_move}
+            onChange={(v) => updateConfig('auto_file.auto_move', v)}
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-gray-700 dark:text-gray-300">Auto Rename</span>
+          <Toggle
+            checked={config.auto_file.auto_rename}
+            onChange={(v) => updateConfig('auto_file.auto_rename', v)}
+          />
+        </div>
+        <Field label="Settle Delay (ms)">
+          <input
+            type="number"
+            value={config.auto_file.settle_delay_ms}
+            onChange={(e) => updateConfig('auto_file.settle_delay_ms', parseInt(e.target.value))}
+            className="input"
+          />
+        </Field>
+      </Section>
+
+      {/* Screenshots */}
+      <Section title="Screenshots">
+        <div className="flex items-center justify-between">
+          <span className="text-gray-700 dark:text-gray-300">Enabled</span>
+          <Toggle
+            checked={config.screenshots.enabled}
+            onChange={(v) => updateConfig('screenshots.enabled', v)}
+          />
+        </div>
+        <Field label="Watch Directory">
+          <input
+            type="text"
+            value={config.screenshots.watch_dir}
+            onChange={(e) => updateConfig('screenshots.watch_dir', e.target.value)}
+            className="input"
+          />
+        </Field>
+        <Field label="Destination">
+          <input
+            type="text"
+            value={config.screenshots.destination}
+            onChange={(e) => updateConfig('screenshots.destination', e.target.value)}
+            className="input"
+          />
+        </Field>
+        <div className="flex items-center justify-between">
+          <span className="text-gray-700 dark:text-gray-300">Use Vision</span>
+          <Toggle
+            checked={config.screenshots.use_vision}
+            onChange={(v) => updateConfig('screenshots.use_vision', v)}
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-gray-700 dark:text-gray-300">Rename</span>
+          <Toggle
+            checked={config.screenshots.rename}
+            onChange={(v) => updateConfig('screenshots.rename', v)}
+          />
+        </div>
+        <Field label="Settle Delay (ms)">
+          <input
+            type="number"
+            value={config.screenshots.settle_delay_ms}
+            onChange={(e) => updateConfig('screenshots.settle_delay_ms', parseInt(e.target.value))}
+            className="input"
+          />
+        </Field>
       </Section>
 
       {/* Git */}
