@@ -86,7 +86,10 @@
             "required": ["name", "path"]
           }
         },
-        "use_llm_classification": { "type": "boolean" }
+        "use_llm_classification": { "type": "boolean" },
+        "auto_move": { "type": "boolean" },
+        "auto_rename": { "type": "boolean" },
+        "settle_delay_ms": { "type": "integer", "minimum": 0 }
       }
     },
     "rename": {
@@ -131,7 +134,8 @@
         "rename": { "type": "boolean" },
         "add_metadata_tags": { "type": "boolean" },
         "use_vision": { "type": "boolean" },
-        "vision_provider": { "type": "string" }
+        "vision_provider": { "type": "string" },
+        "settle_delay_ms": { "type": "integer", "minimum": 0 }
       }
     },
     "queue": {

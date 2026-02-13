@@ -60,6 +60,9 @@ auto_file:
       path: ~/Downloads/Archives
       extensions: [zip, tar, gz, rar, 7z]
   use_llm_classification: true
+  auto_move: false
+  auto_rename: false
+  settle_delay_ms: 3000
 
 # File renaming
 rename:
@@ -90,6 +93,7 @@ screenshots:
   add_metadata_tags: true
   use_vision: true
   vision_provider: openai
+  settle_delay_ms: 2000
 
 # Task queue
 queue:
