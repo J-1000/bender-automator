@@ -84,3 +84,18 @@ queue.RegisterHandler(task.TaskPipelineScreenshot, pipelines.RunScreenshotPipeli
 **Edge case**: If screenshot `watch_dir` overlaps with auto-file `watch_dirs`, skip image files in the auto-file handler to avoid double-processing.
 
 **Timeout**: Pipeline tasks involve LLM calls + file I/O. Increase timeout for pipeline tasks or document that `queue.default_timeout_seconds` should be >= 60 when pipelines are active.
+
+---
+
+## Phase 3: CLI
+
+### 6. New file — `cli/src/commands/pipeline.ts`
+- `pipelineStatus()` — calls `pipeline.status`, displays both pipeline states
+- `pipelineRun(type, file)` — calls `pipeline.auto_file` or `pipeline.screenshot` with spinner
+
+### 7. Register commands — `cli/src/index.ts`
+```
+bender pipeline status        — show pipeline status
+bender pipeline run auto-file <file>  — manually trigger auto-file pipeline
+bender pipeline run screenshot <file> — manually trigger screenshot pipeline
+```
