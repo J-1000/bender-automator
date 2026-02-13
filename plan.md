@@ -163,3 +163,16 @@ Update `isFileOperation` check to include `pipeline.auto_file` and `pipeline.scr
 | `cli/src/__tests__/commands.test.ts` | modify | Pipeline RPC tests |
 
 **No changes**: `handlers.go` (stays pure), `fswatch/watcher.go` (reused as-is), `fileops/` (reused as-is), `notify/` (reused as-is)
+
+---
+
+## Verification
+
+1. **Build**: `cd daemon && go build ./...`
+2. **Go tests**: `cd daemon && go test ./...`
+3. **CLI tests**: `cd cli && npx vitest run`
+4. **Manual e2e auto-file**: Start daemon, drop a `.pdf` into `~/Downloads`, verify it gets classified, moved to `~/Documents/Downloads/`, and renamed
+5. **Manual e2e screenshot**: Take a macOS screenshot to `~/Desktop`, verify it gets tagged, renamed, and moved to `~/Pictures/Screenshots/`
+6. **Undo**: Use `bender undo <task-id>` or dashboard to reverse pipeline operations
+7. **Pipeline status**: `bender pipeline status` shows both pipelines active
+8. **Dashboard**: Visit `/pipelines` page, verify status cards and activity list
